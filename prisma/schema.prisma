@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         String        @default("STUDENT") // STUDENT | ADMIN
+  createdAt    DateTime      @default(now())
+  attempts     Attempt[]
+  chatMessages ChatMessage[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Topic {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  questions   Question[]
+}
+
+model Question {
+  id             String          @id @default(cuid())
+  content        String
+  optionA        String
+  optionB        String
+  optionC        String
+  optionD        String
+  correctOption  String          // "A" | "B" | "C" | "D"
+  explanation    String
+  difficulty     String          // "RECOGNITION" | "UNDERSTANDING" | "APPLICATION"
+  topicId        String
+  topic          Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  examQuestions  ExamQuestion[]
+  attemptAnswers AttemptAnswer[]
+  chatMessages   ChatMessage[]
+
+  @@index([topicId])
+}
+
+model Exam {
+  id              String         @id @default(cuid())
+  title           String
+  description     String?
+  durationMinutes Int            @default(30)
+  isPublished     Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  examQuestions   ExamQuestion[]
+  attempts        Attempt[]
+}
+
+model ExamQuestion {
+  id         String   @id @default(cuid())
+  examId     String
+  questionId String
+  position   Int
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, questionId])
+}
+
+model Attempt {
+  id              String          @id @default(cuid())
+  userId          String
+  examId          String?
+  mode            String          // "PRACTICE" | "EXAM"
+  startedAt       DateTime        @default(now())
+  submittedAt     DateTime?
+  durationSeconds Int             @default(0)
+  correctCount    Int             @default(0)
+  totalQuestions  Int             @default(0)
+  score           Float           @default(0)
+  status          String          @default("IN_PROGRESS") // "IN_PROGRESS" | "SUBMITTED" | "EXPIRED"
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam            Exam?           @relation(fields: [examId], references: [id], onDelete: SetNull)
+  answers         AttemptAnswer[]
+
+  @@index([userId])
+  @@index([submittedAt])
+  @@index([status])
+  @@index([mode])
+}
+
+model AttemptAnswer {
+  id             String   @id @default(cuid())
+  attemptId      String
+  questionId     String
+  selectedOption String?  // "A" | "B" | "C" | "D"
+  isCorrect      Boolean  @default(false)
+  attempt        Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+}
+
+model ChatMessage {
+  id         String    @id @default(cuid())
+  userId     String
+  role       String    // "USER" | "ASSISTANT"
+  content    String
+  questionId String?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+}
