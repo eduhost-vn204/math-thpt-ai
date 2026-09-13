@@ -86,8 +86,13 @@ async function main() {
   await page.goto(`${baseUrl}/admin/questions/new`, { waitUntil: "networkidle" });
   await page.screenshot({ path: path.join(screenshotDir, "11_admin_them_cau_hoi.png"), fullPage: true });
 
+  // 12. Admin Quản lý học sinh
+  console.log("-> 12_admin_quan_ly_hoc_sinh.png");
+  await page.goto(`${baseUrl}/admin/students`, { waitUntil: "networkidle" });
+  await page.screenshot({ path: path.join(screenshotDir, "12_admin_quan_ly_hoc_sinh.png"), fullPage: true });
+
   await browser.close();
-  console.log("🎉 Đã chụp hoàn tất 11 ảnh màn hình chất lượng cao vào thư mục docs/screenshots/!");
+  console.log("🎉 Đã chụp hoàn tất 12 ảnh màn hình chất lượng cao vào thư mục docs/screenshots/!");
 }
 
 main().catch((err) => {
