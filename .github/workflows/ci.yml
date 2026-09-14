@@ -10,8 +10,23 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: math_thpt_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
-      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/math_thpt_test?schema=public"
+      DATABASE_URL: "postgresql://postgres:password@localhost:5432/math_thpt_test?schema=public"
       AUTH_SECRET: "ci-test-super-secret-key-32-chars-long-2026"
       AI_PROVIDER: "gemini"
       GEMINI_API_KEY: ""
