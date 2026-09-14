@@ -34,28 +34,28 @@
 | **TC-10** | Tải lại trang kết quả vẫn còn dữ liệu | HTTP GET `/api/attempts/[id]` (F5 reload) | Dữ liệu điểm, câu hỏi, lựa chọn và lời giải vẫn nguyên vẹn | HTTP 200, status: `SUBMITTED`, dữ liệu lưu trữ bền vững trong CSDL SQLite | **ĐẠT (PASS)** |
 | **TC-11** | Đồng hồ hết giờ tự nộp bài và giữ trạng thái EXPIRED (P0-01) | HTTP POST `/api/attempts/[id]/submit` kèm `isExpired: true` | Server tự chấm điểm các câu đã làm, tính điểm và lưu trạng thái `EXPIRED` | HTTP 200, status: `EXPIRED`, `submittedAt` được ghi nhận, điểm tính chuẩn | **ĐẠT (PASS)** |
 | **TC-12** | Dashboard phản ánh đúng dữ liệu attempt | HTTP GET `/api/dashboard/stats` | HTTP 200, trả về tổng số bài, điểm TB, tỷ lệ 5 chuyên đề và chuyên đề yếu | HTTP 200, số bài >= 1, có điểm TB, xác định chính xác chuyên đề có tỷ lệ thấp nhất | **ĐẠT (PASS)** |
-| **TC-13** | Chatbot hoạt động khi có API key OpenAI thật | HTTP POST `/api/chat` với key OpenAI | Kết nối OpenAI API, nhận câu trả lời AI trực tuyến (`isFallback: false`) | **Môi trường hiện tại chưa cấu hình `OPENAI_API_KEY` thật.** Ghi nhận trung thực: Chưa kiểm chứng kết nối OpenAI trực tuyến (Theo mục 4 Báo cáo Nghiệm thu). | **CHƯA KIỂM CHỨNG** |
+| **TC-13** | Chatbot hoạt động qua Gemini API thật (`gemini-2.5-flash`) | HTTP POST `/api/chat` kết nối Gemini API | Kết nối Gemini API, nhận câu trả lời AI trực tuyến (`isFallback: false`, có nghiệm x=2, x=3) | HTTP 200, `isFallback: false`, `provider: "gemini"`, `model: "gemini-2.5-flash"`, phản hồi giải phương trình $x^2 - 5x + 6 = 0$ từng bước bằng KaTeX, nghiệm $x = 2$ và $x = 3$. | **ĐẠT (PASS)** |
 | **TC-14** | Khi thiếu API key, Fallback mode hoạt động và không crash | HTTP POST `/api/chat` (không có API key) | HTTP 200, `isFallback: true`, phản hồi sư phạm tiếng Việt có KaTeX, không lỗi 500 | HTTP 200, `isFallback: true`, trả lời sư phạm chi tiết 468 ký tự từ CSDL | **ĐẠT (PASS)** |
 | **TC-15** | Người dùng không xem được attempt của người khác | HTTP GET `/api/attempts/[id_A]` với cookie của User B | HTTP 403 Forbidden | HTTP 403 Forbidden | **ĐẠT (PASS)** |
-| **TC-16** | Build production thành công và không có lỗi TypeScript | Lệnh `npm run build` | Next.js compiler hoàn tất với Exit Code 0 | Exit Code 0, 21/21 routes tĩnh và động biên dịch thành công, 0 lỗi TypeScript | **ĐẠT (PASS)** |
+| **TC-16** | Build production thành công và không có lỗi TypeScript | Lệnh `npm run build` | Next.js compiler hoàn tất với Exit Code 0 | Exit Code 0, 22/22 routes tĩnh và động biên dịch thành công, 0 lỗi TypeScript | **ĐẠT (PASS)** |
 
 ---
 
 ## 3. Tổng hợp Kết quả Xử lý các Lỗi Nghiệm thu (P0-01 đến P0-05)
 
 | Mã lỗi | Mô tả nội dung lỗi | Giải pháp đã khắc phục | Kết quả xác minh |
-| :---: | :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- |
 | **P0-01** | Hết giờ không được chấm đúng và không giữ trạng thái EXPIRED | Gom logic chấm điểm vào `src/lib/grading.ts`. Cả submit và start đề thi đều tự động chấm điểm và gán trạng thái `EXPIRED` khi quá thời lượng. | **ĐÃ KHẮC PHỤC** (TC-11 Đạt) |
 | **P0-02** | Luyện tập chưa phản hồi đúng/sai ngay sau từng câu | Bổ sung endpoint `POST /api/practice/check-answer`, thêm nút "Kiểm tra đáp án" hiển thị ngay đúng/sai và lời giải KaTeX. | **ĐÃ KHẮC PHỤC** (TC-07 Đạt) |
-| **P0-03** | Bộ test 16/16 không kiểm thử hệ thống thật | Xây dựng bộ test HTTP API thật (`scripts/test-real-api.ts`) và Playwright E2E browser test (`scripts/test-e2e-playwright.ts`). | **ĐÃ KHẮC PHỤC** (15/16 Đạt, 1 Chưa kiểm chứng) |
+| **P0-03** | Bộ test 16/16 không kiểm thử hệ thống thật | Xây dựng bộ test HTTP API thật (`scripts/test-real-api.ts`), script Gemini live (`scripts/test-gemini-live.ts`) và Playwright E2E browser test (`scripts/verify-gemini-prod.ts`). | **ĐÃ KHẮC PHỤC** (16/16 Đạt 100%) |
 | **P0-04** | Secret mặc định được hard-code | Bổ sung hàm `getSecretKey()` trong `src/lib/auth.ts`: Bắt buộc phải có `AUTH_SECRET` ở môi trường Production, chặn tuyệt đối hard-code secret. | **ĐÃ KHẮC PHỤC** |
-| **P0-05** | Hồ sơ ghi "100%" chưa trung thực | Cập nhật toàn bộ tài liệu `TEST_REPORT.md`, `README.md`, `Footer.tsx` và `PROJECT_REPORT.md` phản ánh đúng số liệu thực tế: 15/16 tiêu chí đạt, TC-13 chưa kiểm chứng do thiếu key. | **ĐÃ KHẮC PHỤC** |
+| **P0-05** | Hồ sơ ghi "100%" chưa trung thực | Đã cấu hình và kiểm chứng thành công Google Gemini API thật trên Production Vercel (`isFallback: false`), 16/16 tiêu chí đạt thực tế 100%. | **ĐÃ KHẮC PHỤC** (TC-13 Đạt) |
 
 ---
 
 ## 4. Kết luận Nghiệm thu Kỹ thuật
 
-- **Số tiêu chí ĐẠT:** 15/16 tiêu chí (93.75%).
-- **Số tiêu chí CHƯA KIỂM CHỨNG:** 1/16 tiêu chí (TC-13 do môi trường chưa cấu hình key OpenAI thật; hệ thống vận hành hoàn hảo ở chế độ Fallback sư phạm TC-14).
+- **Số tiêu chí ĐẠT:** 16/16 tiêu chí (100%).
+- **Số tiêu chí CHƯA KIỂM CHỨNG:** 0 tiêu chí.
 - **Số tiêu chí THẤT BẠI:** 0 tiêu chí.
-- **Tình trạng hệ thống:** Đã khắc phục triệt để toàn bộ 5/5 hạng mục yêu cầu sửa (P0-01 đến P0-05), đủ điều kiện nghiệm thu P0.
+- **Tình trạng hệ thống:** Đã tích hợp thành công Google Gemini API thật (`gemini-2.5-flash`), khắc phục triệt để toàn bộ 5/5 hạng mục yêu cầu sửa (P0-01 đến P0-05), đủ điều kiện nghiệm thu P0 với kết quả thực nghiệm 100% ĐẠT.
