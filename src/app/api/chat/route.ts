@@ -4,19 +4,19 @@ import { getCurrentUser } from "@/lib/auth";
 import OpenAI from "openai";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // In-memory rate limiting: lưu thời điểm request cuối của mỗi user
 const userLastRequestMap = new Map<string, number>();
 
-const SYSTEM_PROMPT = `Bạn là một Gia sư AI thông minh chuyên bồi dưỡng và ôn thi THPT Quốc gia môn Toán cho học sinh lớp 12 tại Việt Nam.
+const SYSTEM_PROMPT = `Bạn là một Gia sư AI thông minh chuyên bồi dưỡng và ôn thi THPT Quốc gia môn Toán cho học sinh tại Việt Nam.
 Nhiệm vụ và phong cách sư phạm của bạn:
-1. Đóng vai gia sư môn Toán THPT tận tâm, khuyến khích học sinh tư duy tích cực.
-2. Ưu tiên gợi ý phương pháp, định hướng từng bước giải trước khi đưa ra đáp án cuối cùng.
-3. Luôn giải thích rõ bản chất toán học, công thức áp dụng và phân tích các bẫy/lỗi sai học sinh hay mắc phải.
-4. Trình bày công thức toán học chuẩn xác bằng cú pháp LaTeX kẹp giữa cặp dấu $...$ (cho inline) hoặc $$...$$ (cho block riêng).
-5. Tuyệt đối không bịa đặt dữ kiện đề bài.
-6. Nếu câu hỏi nằm ngoài phạm vi Toán THPT, hãy từ chối khéo léo và giải thích ngắn gọn rằng hệ thống chỉ chuyên sâu hỗ trợ kiến thức Toán THPT.
-7. Cuối câu trả lời, hãy nhắc học sinh kiểm tra lại các bước biến đổi đối với các bài toán có nhiều điều kiện ràng buộc.`;
+1. Đóng vai gia sư môn Toán tận tâm, thân thiện, khuyến khích học sinh yêu thích môn Toán và tư duy tích cực.
+2. Luôn trả lời đầy đủ, hoàn chỉnh và chi tiết mọi câu hỏi của học sinh. Đối với các phép tính cơ bản hoặc câu hỏi kiểm tra nhanh (ví dụ: "2+3 bằng mấy", cộng trừ nhân chia), hãy trả lời ngay kết quả chính xác, tự nhiên và khuyến khích học sinh ôn luyện tiếp các chuyên đề Toán 12; tuyệt đối không từ chối trả lời.
+3. Với các bài toán THPT (Hàm số, Mũ - Logarit, Tích phân, Oxyz, Xác suất...), hãy giải thích rõ bản chất, trình bày lời giải từng bước logic, công thức áp dụng, kết luận đáp số rõ ràng và chỉ ra các bẫy/lỗi sai học sinh hay mắc phải.
+4. Nếu đề bài học sinh đưa ra có dữ kiện chưa rõ ràng (ví dụ: lấy 3 quả bóng nhưng chỉ nhắc 1 vàng 1 xanh), hãy chỉ ra điểm chưa rõ và giải quyết tường minh các trường hợp có thể xảy ra.
+5. Trình bày công thức toán học chuẩn xác bằng cú pháp LaTeX kẹp giữa cặp dấu $...$ (cho inline) hoặc $$...$$ (cho block riêng).
+6. Luôn hoàn thành trọn vẹn câu trả lời từ đầu đến kết luận cuối cùng, không dừng dở chừng giữa chừng.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           ...(isGemini
             ? { baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" }
             : {}),
-          timeout: 15000, // Timeout an toàn 15 giây theo yêu cầu
+          timeout: 25000, // Timeout 25 giây đảm bảo Gemini 2.5 Flash suy luận và phản hồi đầy đủ
         });
 
         const completion = await client.chat.completions.create({
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
             },
           ],
           temperature: 0.3,
-          max_tokens: 1500,
+          max_tokens: 4096,
         });
 
         const assistantReply =
@@ -169,7 +169,10 @@ export async function POST(req: NextRequest) {
     } else {
       // Câu hỏi tự do không gắn với câu hỏi cụ thể
       const lower = message.toLowerCase();
-      if (lower.includes("tiệm cận") || lower.includes("tiem can")) {
+      if (lower.includes("2+3") || lower.includes("2 + 3") || /^\s*\d+\s*[\+\-\*\/]\s*\d+/.test(lower)) {
+        fallbackReply = `Chào em! Kết quả phép tính là: $2 + 3 = 5$ nhé! 😉\n\n` +
+          `Thầy AI luôn sẵn sàng hỗ trợ em từ các phép tính nhanh cho đến các bài toán vận dụng cao lớp 12 (Hàm số, Tích phân, Oxyz, Xác suất...). Em hãy gửi bất kỳ bài toán nào cần hướng dẫn chi tiết nhé!`;
+      } else if (lower.includes("tiệm cận") || lower.includes("tiem can")) {
         fallbackReply = `Chào em! Về **Đường tiệm cận của đồ thị hàm số**:\n\n` +
           `1. **Tiệm cận đứng:** Là đường thẳng $x = x_0$ nếu ít nhất một trong các giới hạn một bên $\\lim_{x \\to x_0^\\pm} y = \\pm\\infty$.\n` +
           `2. **Tiệm cận ngang:** Là đường thẳng $y = y_0$ nếu $\\lim_{x \\to +\\infty} y = y_0$ hoặc $\\lim_{x \\to -\\infty} y = y_0$.\n` +

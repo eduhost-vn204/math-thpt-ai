@@ -11,16 +11,17 @@ async function testProd() {
   const cookie = loginRes.headers.get("set-cookie") || "";
   console.log(`- Login HTTP: ${loginRes.status}, Cookie: ${cookie ? "Đã nhận" : "Không"}`);
 
-  console.log("\n2. Gửi câu hỏi đến /api/chat trên production...");
+  console.log("\n2. Gửi câu hỏi toán xác suất...");
   const chatRes = await fetch(`${BASE_URL}/api/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Cookie: cookie,
     },
-    body: JSON.stringify({ message: "Giải phương trình x^2 - 5x + 6 = 0 và trình bày bằng LaTeX." }),
+    body: JSON.stringify({
+      message: "Oke thế cho 10 quả bóng màu xanh 10 bóng vàng xác xuất bóng 3 quả bóng trúng 1 vàng 1 xanh là bao nhiêu",
+    }),
   });
-
   console.log(`- Chat HTTP: ${chatRes.status}`);
   const data = await chatRes.json();
   console.log("- Data response:", JSON.stringify(data, null, 2));
