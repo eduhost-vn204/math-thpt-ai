@@ -89,19 +89,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    const provider = (process.env.AI_PROVIDER?.trim().toLowerCase() || "gemini") as "gemini" | "openai";
+    const geminiKey = process.env.GEMINI_API_KEY?.trim();
+    const openaiKey = process.env.OPENAI_API_KEY?.trim();
 
-    // CHẾ ĐỘ 1: GỌI API OPENAI THẬT (Khi có cấu hình OPENAI_API_KEY ở server)
+    const isGemini = provider === "gemini";
+    const apiKey = isGemini ? geminiKey : openaiKey;
+    const defaultModel = isGemini ? "gemini-2.5-flash" : "gpt-4o-mini";
+    const model = process.env.AI_MODEL?.trim() || (isGemini ? defaultModel : (process.env.OPENAI_MODEL?.trim() || defaultModel));
+
+    // CHẾ ĐỘ 1: GỌI API AI THẬT (Gemini hoặc OpenAI theo AI_PROVIDER)
     if (apiKey) {
       try {
-        const openai = new OpenAI({
+        const client = new OpenAI({
           apiKey,
-          timeout: 15000, // Timeout an toàn 15 giây theo yêu cầu P0-03
+          ...(isGemini
+            ? { baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" }
+            : {}),
+          timeout: 15000, // Timeout an toàn 15 giây theo yêu cầu
         });
 
-        const model = process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
-
-        const completion = await openai.chat.completions.create({
+        const completion = await client.chat.completions.create({
           model,
           messages: [
             {
@@ -134,11 +142,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           reply: assistantReply,
           isFallback: false,
+          provider,
+          model,
         });
       } catch (apiError: any) {
-        // Xử lý các mã lỗi phổ biến theo yêu cầu P0-03 mà tuyệt đối không log API key
+        // Xử lý các mã lỗi mà tuyệt đối không log API key hoặc credentials
         const statusCode = apiError?.status || apiError?.statusCode;
-        console.warn(`[OpenAI Call Handled] Mã lỗi: ${statusCode || "Network/Timeout"}. Chuyển sang Chế độ minh họa an toàn.`);
+        console.warn(`[${provider.toUpperCase()} Call Handled] Mã lỗi: ${statusCode || "Network/Timeout"}. Chuyển sang Chế độ dự phòng an toàn.`);
       }
     }
 
@@ -200,6 +210,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       reply: fallbackReply,
       isFallback: true,
+      provider,
+      model: "fallback",
+      notice: "Phản hồi được tạo từ hệ thống Lời giải chuẩn (Chế độ dự phòng sư phạm).",
     });
   } catch (error: any) {
     console.error("Chat API error:", error);

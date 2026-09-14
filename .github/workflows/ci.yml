@@ -13,6 +13,9 @@ jobs:
     env:
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/math_thpt_test?schema=public"
       AUTH_SECRET: "ci-test-super-secret-key-32-chars-long-2026"
+      AI_PROVIDER: "gemini"
+      GEMINI_API_KEY: ""
+      AI_MODEL: "gemini-2.5-flash"
       OPENAI_API_KEY: ""
       OPENAI_MODEL: "gpt-4o-mini"
 

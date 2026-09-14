@@ -33,6 +33,7 @@ function TutorContent() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isFallbackMode, setIsFallbackMode] = useState(true);
+  const [aiProvider, setAiProvider] = useState<string>("gemini");
   const [questionContext, setQuestionContext] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -115,6 +116,7 @@ function TutorContent() {
       const data = await res.json();
       if (res.ok) {
         setIsFallbackMode(!!data.isFallback);
+        if (data.provider) setAiProvider(data.provider);
         const newAiMsg: Message = {
           id: (Date.now() + 1).toString(),
           role: "ASSISTANT",
@@ -164,17 +166,17 @@ function TutorContent() {
           </div>
         </div>
 
-        {/* Fallback Mode Indicator according to SPEC 2.6 */}
+        {/* Fallback Mode Indicator according to SPEC */}
         <div className="flex items-center gap-2">
           {isFallbackMode ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Chế độ minh họa</span>
+              <span>Chế độ dự phòng</span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>AI Trực tuyến (OpenAI)</span>
+              <span>{aiProvider === "openai" ? "OpenAI AI trực tuyến" : "Gemini AI trực tuyến"}</span>
             </span>
           )}
         </div>

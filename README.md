@@ -12,7 +12,7 @@
 - **Source Control:** GitHub Repository (`eduhost-vn204/math-thpt-ai`).
 - **Hosting & Compute:** Vercel (chạy Next.js App Router, Server Components & Route Handlers).
 - **Cơ sở dữ liệu:** PostgreSQL Managed (Neon, Supabase hoặc Vercel Postgres) kết nối qua Prisma ORM với cơ chế migration chính thức (`prisma migrate deploy`).
-- **Trí tuệ nhân tạo (AI Engine):** OpenAI API (GPT-4o-mini / GPT-4o) thực thi độc quyền ở server-side, có timeout 15s, rate limit và chế độ fallback sư phạm an toàn khi chưa cấu hình API key.
+- **Trí tuệ nhân tạo (AI Engine):** Kiến trúc đa nhà cung cấp (`AI_PROVIDER=gemini|openai`). Hỗ trợ Google Gemini API (`gemini-2.5-flash` qua OpenAI-compatible endpoint) và OpenAI API (`gpt-4o-mini`). Thực thi độc quyền ở server-side, có timeout 15s, rate limit và chế độ dự phòng (fallback) sư phạm an toàn khi chưa cấu hình API key.
 - **Bảo mật:** Cookie-based HTTP-only JWT (jose), băm mật khẩu Bcrypt, xác thực phân quyền Role-based (STUDENT vs ADMIN), fail-fast validation cho biến môi trường production.
 
 ---
@@ -24,8 +24,11 @@ File `.env.example` chứa các biến cần thiết:
 ```env
 DATABASE_URL=
 AUTH_SECRET=
+AI_PROVIDER=gemini
+GEMINI_API_KEY=
+AI_MODEL=gemini-2.5-flash
 OPENAI_API_KEY=
-OPENAI_MODEL=
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 ### Hướng dẫn thiết lập:
@@ -34,8 +37,11 @@ OPENAI_MODEL=
 | :--- | :---: | :--- |
 | `DATABASE_URL` | Có | Chuỗi kết nối PostgreSQL (ví dụ: `postgresql://user:password@ep-xyz.neon.tech/dbname?sslmode=require`) |
 | `AUTH_SECRET` | Có | Khóa bí mật ký phiên JWT (tối thiểu 32 byte ngẫu nhiên, ví dụ: `openssl rand -base64 32`) |
-| `OPENAI_API_KEY` | Tùy chọn | Khóa API từ OpenAI platform (để trống sẽ kích hoạt Chế độ minh họa Fallback sư phạm) |
-| `OPENAI_MODEL` | Tùy chọn | Model AI sử dụng (mặc định: `gpt-4o-mini`) |
+| `AI_PROVIDER` | Tùy chọn | Nhà cung cấp AI (`gemini` hoặc `openai`, mặc định: `gemini`) |
+| `GEMINI_API_KEY` | Tùy chọn | Khóa Gemini API khi dùng provider `gemini` (lấy tại Google AI Studio) |
+| `AI_MODEL` | Tùy chọn | Model AI sử dụng (mặc định: `gemini-2.5-flash` cho Gemini, `gpt-4o-mini` cho OpenAI) |
+| `OPENAI_API_KEY` | Tùy chọn | Khóa OpenAI API khi dùng provider `openai` |
+| `OPENAI_MODEL` | Tùy chọn | Model OpenAI sử dụng (mặc định: `gpt-4o-mini`) |
 
 > **Bảo mật nghiêm ngặt:** Tuyệt đối không commit file `.env` hoặc để lộ API key trong mã nguồn và repository. Khi triển khai trên Vercel, hãy nạp các biến này trực tiếp tại mục **Project Settings -> Environment Variables**.
 
@@ -100,8 +106,10 @@ Mở trình duyệt tại: `http://localhost:3000`
 4. **Cấu hình Environment Variables trên Vercel:**
    - `DATABASE_URL`: Connection string PostgreSQL.
    - `AUTH_SECRET`: Chuỗi ngẫu nhiên tối thiểu 32 ký tự.
-   - `OPENAI_API_KEY`: Khóa OpenAI API (nếu muốn kích hoạt AI thật).
-   - `OPENAI_MODEL`: `gpt-4o-mini`.
+   - `AI_PROVIDER`: `gemini` (hoặc `openai`).
+   - `GEMINI_API_KEY`: Khóa Gemini API lấy từ Google AI Studio (người dùng tự nhập).
+   - `AI_MODEL`: `gemini-2.5-flash` (hoặc `gemini-1.5-flash`).
+   - `OPENAI_API_KEY`: Khóa OpenAI API (nếu muốn dùng OpenAI thay thế).
 5. **Chạy Migration & Seed trên Database:**
    ```bash
    npx prisma migrate deploy
