@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
     const questions = await prisma.question.findMany({
       where: { topicId },
     });
-
+    
+console.log("Số câu hỏi của chuyên đề:", questions.length);
     if (questions.length === 0) {
       return NextResponse.json({ error: "Chuyên đề này hiện chưa có câu hỏi." }, { status: 400 });
     }
